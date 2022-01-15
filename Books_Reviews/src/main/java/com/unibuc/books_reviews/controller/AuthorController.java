@@ -1,5 +1,6 @@
 package com.unibuc.books_reviews.controller;
 
+import com.unibuc.books_reviews.dto.AuthorCountryDTO;
 import com.unibuc.books_reviews.model.Author;
 import com.unibuc.books_reviews.service.AuthorService;
 import org.springframework.http.ResponseEntity;
@@ -29,5 +30,10 @@ public class AuthorController {
     @GetMapping("/authorByName")
     public ResponseEntity<Author> retrieveByName(@RequestParam String authorName){
         return ResponseEntity.ok().body(authorService.retrieveByName(authorName));
+    }
+
+    @GetMapping("authorByCountry")
+    public ResponseEntity<List<AuthorCountryDTO>> retrieveByCountry(@RequestParam String country){
+        return ResponseEntity.ok().body(authorService.getByCountry(country));
     }
 }

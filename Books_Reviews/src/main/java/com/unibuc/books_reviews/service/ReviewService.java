@@ -36,4 +36,8 @@ public class ReviewService {
 
         return false;
     }
+
+    public List<Review> getTopThree(){
+        return reviewRepository.findTopThreeReviews();
+    }
 }

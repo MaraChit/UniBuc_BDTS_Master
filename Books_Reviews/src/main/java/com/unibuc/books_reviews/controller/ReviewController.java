@@ -29,4 +29,10 @@ public class ReviewController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<Boolean> deleteReview(@RequestParam int id){return ResponseEntity.ok().body(reviewService.delete(id));}
+
+    @GetMapping("/top3")
+    public ResponseEntity<List<Review>> getTopThree()
+    {
+        return ResponseEntity.ok().body(reviewService.getTopThree());
+    }
 }
