@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Books</title>
+
+
+</head>
+<h1>Best Books</h1>
+
+<table style="width:50%" >
+    <tr align="left">
+        <th><a th:href="@{'/page/' + ${currentPage} + '?sortField=bookId&sortDir=' + ${reverseSortDir}}">
+            Book Id</a>
+        </th>
+        <th><a th:href="@{'/page/' + ${currentPage} + '?sortField=title&sortDir=' + ${reverseSortDir}}">
+            Title</a>
+        </th>
+        <th><a th:href="@{'/page/' + ${currentPage} + '?sortField=publishingDate&sortDir=' + ${reverseSortDir}}">
+            Publishing date</a>
+        </th>
+        <th>
+            <a th:href="@{'/page/' + ${currentPage} + '?sortField=rating&sortDir=' + ${reverseSortDir}}">
+                Goodreads Rating</a>
+        </th>
+    </tr>
+    <tr th:each="book: ${BookList}">
+        <td th:text="${book.bookId}">bookId</td>
+        <td th:text="${book.title}">title</td>
+        <td th:text="${book.publishingDate}">publishedDate</td>
+        <td th:text="${book.rating} + ' ' + of + ' ' + 5">Rating</td>
+    </tr>
+</table>
+<br>
+<div th:if = "${totalPages > 1}">
+    <div class = "row col-sm-10">
+        <div class = "col-sm-2">
+            Total Rows: [[${totalItems}]]
+        </div>
+        <div class = "col-sm-1">
+					<span th:each="i: ${#numbers.sequence(1, totalPages)}">
+						<a th:if="${currentPage != i}" th:href="@{'/page/' + ${i}+ '?sortField=' + ${sortField} + '&sortDir=' + ${sortDir}}">[[${i}]]</a>
+						<span th:unless="${currentPage != i}">[[${i}]]</span>  &nbsp; &nbsp;
+					</span>
+        </div>
+        <div class = "col-sm-1">
+            <a th:if="${currentPage < totalPages}" th:href="@{'/page/' + ${currentPage + 1}+ '?sortField=' + ${sortField} + '&sortDir=' + ${sortDir}}">Next</a>
+            <span th:unless="${currentPage < totalPages}">Next</span>
+        </div>
+
+        <div class="col-sm-1">
+            <a th:if="${currentPage < totalPages}" th:href="@{'/page/' + ${totalPages}+ '?sortField=' + ${sortField} + '&sortDir=' + ${sortDir}}">Last</a>
+            <span th:unless="${currentPage < totalPages}">Last</span>
+        </div>
+    </div>
+</div>
+<br>
+<form th:action="@{/newBook}" th:object="${book}" method="post">
+    <input type="submit" value="Add book">
+</form>
+<form th:action="@{/deleteBook}" th:object="${book}" method="delete">
+    <input type="submit" value="Delete a book by Id">
+</form>
+<form th:action="@{/updateBook}" th:object="${book}" method="get">
+    <input type="submit" value="Update Book">
+</form>
+<form th:action="@{/categories}" method="get">
+    <label>See all categories</label>
+    <input type="submit" value="Categories">
+</form>
+<form th:action="@{/authors}" method="get">
+    <label>See all authors</label>
+    <input type="submit" value="Authors">
+</form>
+<form th:action="@{/publishingHouses}" method="get">
+    <label>See all publishing houses</label>
+    <input type="submit" value="Publishing Houses">
+</form>
+<div class = "logoutBtn">
+<form th:action="@{/logout}" method="post">
+    <h4>Logout?</h4>
+    <input type="submit" value="Logout">
+</form>
+</div>
+<style>
+    .logoutBtn{
+        position: absolute;
+        top: 8px;
+        right: 16px;
+    }
+</style>
+</body>
+</html>

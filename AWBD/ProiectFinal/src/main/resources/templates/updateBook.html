@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Update Book</title>
+</head>
+<body>
+<h3>Update Book</h3>
+<form th:action="@{/completeUpdateBook}" method="post">
+    <label for="bookId">Please feel in the id of the book you wish to update: </label><br>
+    <input type="text" id="bookId" name="bookId" required minlength="1" maxlength="100" ><br><br>
+    <label> Please provide new data for the book you wish to update: </label><br>
+    <label for="title">Title:</label><br>
+    <input type="text" id="title" name="title" required minlength="2" maxlength="100" ><br><br>
+    <label for="publishingDate">Publishing date:</label><br>
+    <input type="text" id="publishingDate" name="publishingDate" required minlength="1" maxlength="100" ><br><br>
+    <label for="rating">Rating:</label><br>
+    <input type="float" id="rating" name="rating" required minlength="1" maxlength="100"><br><br>
+    <label for="publishingHouse">Publishing house Id:</label><br>
+    <input type="float" id="publishingHouse" name="publishingHouse" required minlength="1" maxlength="100"><br><br>
+    <input type="submit" value="Update Book">
+</form>
+</body>
+</html>

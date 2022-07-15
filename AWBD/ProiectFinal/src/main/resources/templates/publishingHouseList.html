@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Authors</title>
+</head>
+<body>
+<div class="container">
+    <table class="table table-hover ">
+        <thead class="thead-inverse">
+        <tr>
+            <th>Id</th>
+            <th>Country</th>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tr th:each="publishingHouse, stat : ${publishingHouses}"
+            th:class="${stat.odd}? 'table-light':'table-dark'">
+            <td th:text="${publishingHouse.publishingHouseId}"></td>
+            <td th:text="${publishingHouse.country}"></td>
+            <td th:text="${publishingHouse.publishingHouseName}"></td>
+        </tr>
+    </table>
+</div>
+<a class="btn btn-primary" role="button" th:href="@{'/newPublishingHouse'}">ADD Publishing House</a>
+</body>
+</html>
