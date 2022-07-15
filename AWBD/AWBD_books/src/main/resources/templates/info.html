@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Info</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/4.5.0/css/bootstrap.min.css"/>
+    <script src="/webjars/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<body>
+<div class="container" style="margin-top: 50px">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <div class="pannel-group">
+                <div class="panel panel-primary">
+                    <div class="panel-heading" style="background-color:lightgray;">
+                        <h1 class="panel-title" th:text="${book.title}">Book</h1>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <h5>Category:</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <ul>
+                                    <li th:each="category:${book.categories}"th:text="${category.getName()}">
+                                        category
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-3">
+                                <label th:for="restored">Restored</label>
+                                <input type="checkbox" th:field="${book.restored}" />
+                            </div>
+
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-2">
+                                <p>Author:</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p th:text="${book.author != null ?(book.author):'author'}">author</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p5>Price:</p5>
+                            </div>
+                            <div class="col-md-3">
+                                <p th:text="${book.price != null ? book.price:' '}">
+                                    Price
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="panel panel-primary">
+                <div class="panel-heading" style="background-color:lightgray;">
+                    <h1 class="panel-title">Info</h1>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p th:text="${book.info != null ? book.info.description:''}">
+                                Info
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
