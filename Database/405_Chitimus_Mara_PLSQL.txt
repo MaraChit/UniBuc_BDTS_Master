@@ -1,0 +1,203 @@
+-- h)Crearea tabelului de mesaje:
+
+CREATE TABLE MESSAGES(
+    MESSAGE_ID NUMBER ,
+    PRIMARY KEY(MESSAGE_ID),
+    MESSAGE VARCHAR2(255),
+    MESSAGE_TYPE VARCHAR2(1) CHECK (MESSAGE_TYPE IN ('E','W','I')),
+    CREATED_BY VARCHAR2(40) NOT NULL,
+    CREATED_AT DATE NOT NULL  
+);
+
+-- j) creaza o secventa pentru a genera id-ul pentru tabelul de mesaje
+
+CREATE SEQUENCE message_seq
+ START WITH     1
+ INCREMENT BY   1
+ NOCACHE
+ NOCYCLE
+ NOMAXVALUE;
+
+-- i) 
+-- 1. Subprogram stocat care sa foloseasca doua tipuri de colectii
+-- Sa se afiseze pentru fiecare autor suma tuturor cartilor publicate
+
+CREATE OR REPLACE PROCEDURE SUMA_CARTI
+IS
+BEGIN
+    DECLARE
+    TYPE autori_arr IS TABLE OF author.author_id%TYPE
+    INDEX BY BINARY_INTEGER;
+    TYPE suma_preturi IS VARRAY(100) OF NUMBER (10);
+    v_suma_preturi suma_preturi;
+    v_autori_arr autori_arr := autori_arr();
+    v_suma NUMBER;
+    BEGIN
+    SELECT author_id
+    BULK COLLECT INTO v_autori_arr
+    FROM author;
+    FOR i IN v_autori_arr.FIRST..v_autori_arr.LAST LOOP
+        v_suma := 0;
+        SELECT b.price
+        BULK COLLECT INTO v_suma_preturi
+        FROM book b INNER JOIN writes w ON b.book_id = w.book_id
+                    INNER JOIN author a ON w.author_id = a.author_id
+        WHERE a.author_id = v_autori_arr(i);
+        
+        FOR j IN v_suma_preturi.FIRST..v_suma_preturi.LAST LOOP
+            v_suma := v_suma + v_suma_preturi(j);
+        END LOOP;
+        DBMS_OUTPUT.PUT_LINE('Autorul CU ID-ul  ' || v_autori_arr(i) || ' are suma preturilor cartilor egala cu ' || v_suma);
+    END LOOP;
+    END;
+END;
+/
+
+BEGIN
+SUMA_CARTI;
+END;
+/
+
+– 2. Subprogram stocat cu un cursor
+-- Afseaza pentru fiecare categorie existenta numarul de carti ce ii apartin.
+CREATE OR REPLACE PROCEDURE CATEGORY_BOOK IS
+BEGIN
+DECLARE 
+    CURSOR c1 IS
+    SELECT category_name category, COUNT(book_id) nr_carti
+    FROM category c, book b
+    WHERE c.category_id = b.category_id
+    GROUP BY category_name;
+    BEGIN
+        FOR i IN c1 LOOP
+        IF i.nr_carti = 0 THEN
+            DBMS_OUTPUT.PUT_LINE ('Categoria ' || i.category || ' nu contine carti.');
+        ELSIF i.nr_carti = 1  THEN
+            DBMS_OUTPUT.PUT_LINE ('Categoria ' || i.category || ' contine o carte.');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE ('Categoria ' || i.category || ' contine ' || i.nr_carti || ' carti.');
+        END IF;
+        END LOOP;
+    END;
+END CATEGORY_BOOK;
+/
+
+SET SERVEROUTPUT ON; 
+
+BEGIN
+CATEGORY_BOOK;
+END;
+/
+
+-- 3. Subprogram stocat de tip functie in care se folosesc 3 tabele
+-- sa se afiseze cartea scrisa de un autor al carui nume este dat de user
+
+CREATE OR REPLACE FUNCTION BOOK_AUTHOR (nume_autor author.author_name%TYPE)
+RETURN book.title%TYPE
+AS
+    titlu varchar(200);
+BEGIN
+    SELECT title INTO titlu
+    FROM book b INNER JOIN writes w ON b.book_id = w. book_id 
+                INNER JOIN author a ON a.author_id = w.author_id
+    WHERE lower(a.author_name) = lower(nume_autor);
+    RETURN titlu;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        INSERT INTO MESSAGES(MESSAGE_ID,MESSAGE,MESSAGE_TYPE,CREATED_BY,CREATED_AT) VALUES (message_seq.nextval, 'Nu exista autor cu acest nume.', 'E', 'BOOK_AUTHOR',SYSDATE);
+        --RAISE_APPLICATION_ERROR(-20201, 'Nu exista autor cu acest nume.');
+        RETURN NULL;
+    WHEN TOO_MANY_ROWS THEN
+        INSERT INTO MESSAGES(MESSAGE_ID,MESSAGE,MESSAGE_TYPE,CREATED_BY,CREATED_AT) VALUES (message_seq.nextval,'Exista mai multe carti scrise de acest autor.', 'E', 'BOOK_AUTHOR',SYSDATE);
+        --RAISE_APPLICATION_ERROR(-20201, 'Exista mai multe carti scrise de acest autor.');
+        RETURN NULL;
+END BOOK_AUTHOR;
+/
+
+-- cazul functional
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Autorul a scris cartea: ' || BOOK_AUTHOR('karl f'));
+END;
+/
+
+-- eroare 'Nu exista autor cu acest nume.' (va fi inserata in tabel, nu afisata pee cran)
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Autorul a scris cartea: ' || BOOK_AUTHOR('carl f'));
+END;
+/
+SELECT * FROM MESSAGES;
+
+-- eroare 'Exista mai multe carti scrise de acest autor.' (va fi inserata in tabel, nu afisata pee cran)
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Autorul a scris cartea: ' || BOOK_AUTHOR('jk rowling'));
+END;
+/
+SELECT * FROM MESSAGES;
+
+--4. Sa se creeze un trigger care se asigura ca nu se pot face modificari pe tabelul book in weekend. 
+CREATE OR REPLACE TRIGGER BOOK_TRIGGER
+BEFORE INSERT OR UPDATE OR DELETE ON book
+BEGIN
+    IF (TO_CHAR(SYSDATE,'dy') IN ('sat','sun'))
+    THEN
+        RAISE_APPLICATION_ERROR(-20500,'In weekend nu se pot face modificari pe tabelul book');
+    ELSE 
+        INSERT INTO MESSAGES(MESSAGE_ID, MESSAGE,MESSAGE_TYPE,CREATED_BY,CREATED_AT) VALUES (message_seq.nextval, 'Book a fost modificat', 'I', 'BOOK_TRIGGER',SYSDATE);
+    END IF;
+END;
+/
+
+-- declansare trigger
+UPDATE book SET title = 'trigger_test' WHERE book_id = 5;
+SELECT * FROM MESSAGES;
+
+-- 5. Creeaza un trigger care sa se asigure ca orice valoare a pretului si a numarului de pagini din books este pozitiva.
+CREATE OR REPLACE TRIGGER PRICE_PAGES_TRIGGER 
+BEFORE INSERT OR UPDATE ON book
+FOR EACH ROW
+BEGIN
+     IF(:NEW.price <= 0 OR :NEW.no_of_pages <=0) THEN
+        RAISE_APPLICATION_ERROR (-20201, 'Paginile si pretul trebuie sa fie mai mari ca 0.');
+    END IF;
+END;
+/
+
+-- declansare trigger
+-- cu eroare
+UPDATE book SET price = -1 WHERE book_id = 1;
+-- fara eroare
+UPDATE book SET price = 205 WHERE book_id = 5;
+
+-- 6. Creeaza un trigger care sa salveze erorile in tabelul de mesaje dupa fiecare eroare de server
+CREATE OR REPLACE TRIGGER SAVE_ERRORS
+AFTER SERVERERROR ON DATABASE
+BEGIN
+    INSERT INTO MESSAGES(MESSAGE_ID,MESSAGE,MESSAGE_TYPE,CREATED_BY,CREATED_AT) VALUES (message_seq.nextval, SYS.server_error_msg(1), 'E', 'SAVE_ERRORS',SYSDATE);
+END;
+
+-- Declansare trigger: provocare eroare server prin impartirea la 0
+SELECT 1/0 FROM DUAL;
+SELECT * FROM MESSAGES;
+
+--7. Pachet
+
+CREATE OR REPLACE PACKAGE TOATE_PROCEDURILE IS
+    PROCEDURE SUMA_CARTI;
+    PROCEDURE CATEGORY_BOOK;
+    FUNCTION BOOK_AUTHOR (nume_autor author.author_name%TYPE)
+            RETURN book.title%TYPE;
+            
+    TYPE autori_arr IS TABLE OF author.author_id%TYPE
+    INDEX BY BINARY_INTEGER;
+    TYPE suma_preturi IS VARRAY(100) OF NUMBER (10);
+    
+    CURSOR c1 IS
+    SELECT category_name category, COUNT(book_id) nr_carti
+    FROM category c, book b
+    WHERE c.category_id = b.category_id
+    GROUP BY category_name;
+
+
+END TOATE_PROCEDURILE;
+/
+

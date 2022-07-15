@@ -1,0 +1,103 @@
+--- QUERIES
+-- 1. Selecteaza toti autorii care au scris cel putin doua carti.
+SELECT a.author_id, a.author_name
+FROM author a
+WHERE a.author_id IN ( SELECT w.author_id
+                        FROM writes w
+                        GROUP BY w.author_id
+                        HAVING COUNT(w.author_id) >= 2 );
+                        
+-- 2. Afiseaza pretul mediu al cartilor publicate intre anii 2000 si 2020.
+SELECT AVG(b.price) AS Average_price
+FROM book b 
+WHERE b.book_id IN (SELECT w.book_id 
+                    FROM writes w
+                    WHERE w.publication_year between to_date( '01-jan-2000 00:00:00', 'dd-mon-yyyy hh24:mi:ss' )
+                                                 and to_date( '01-jan-2020 00:00:00', 'dd-mon-yyyy hh24:mi:ss' ));
+                             
+-- 3. Afiseaza toate cartile care sunt history sau sunt editie de colectie, cu tipul de coperta si categoria in litere mici.
+SELECT c.category_name, b.title, f.cover_type
+FROM book b RIGHT JOIN category c ON c.category_id = b.category_id
+            LEFT JOIN format f ON b.format_id = f.format_id
+WHERE lower(f.cover_type) = to_char('collector edition') OR lower(c.category_name) = 'history';
+ 
+-- 4. Returneaza cartile care au pretul sub 70 de lei si afiseaza in romana formatul (in loc de cel in engleza).
+SELECT b.title, b.price,
+    DECODE(f.format_id, 1, 'Coperta de hartie', 
+                         2, 'Coperta cartonata', 
+                         3, 'Editie de colectie', 
+                         4, 'Editie de piele',
+                         5, 'Digital',
+                            'Non domestic')  "Tip coperta"
+    FROM book b INNER JOIN format f ON b.format_id = f.format_id
+    WHERE b.price < 70;
+
+--5. Afiseaza titlurile cartilor (cu upper letters) care au cel putin 200 de pagini si nu sunt digitale, ordonate dupa pret, crescator.
+SELECT UPPER(b.title), b.no_of_pages, b.price, f.cover_type
+FROM book b FULL JOIN format f ON f.format_id = b.format_id
+WHERE b.no_of_pages >= 200 AND upper(f.cover_type) <> TO_CHAR('DIGITAL')
+ORDER BY b.price;
+
+-- 6. Afiseaza suma preturilor cartilor scrise de JK Rowling.
+SELECT SUM(b.price) AS SUMA_PRETURILOR
+FROM book b INNER JOIN writes w ON b.book_id = w.book_id INNER JOIN author a ON a.author_id = w.author_id
+WHERE UPPER(a.author_name) = UPPER(TO_CHAR('JK Rowling'));
+
+-- 7. Afiseaza toate cartile de istorie, cu titlu, descriere, numar de pagini si pret. Daca nu se stie numarul de pagini, se va afisa 'Necunoscut'.
+SELECT b.title, b.description, NVL(TO_CHAR(b.no_of_pages), 'Necunoscut'), b.price
+FROM book b FULL JOIN category c ON c.category_id = b.category_id
+WHERE lower(c.category_name) = 'history';
+
+--8. Afiseaza toate cartile cu titlu, descriere, pret si numar de pagini. Daca au acelasi pret cu numarul de pagini, se va afisa in coloana de pret 
+--'Acelasi ca pretul'.
+SELECT
+  book_id, title, description, price,
+  COALESCE(TO_CHAR(NULLIF(no_of_pages, price)), 'Acelasi ca pretul')numar_pagini
+FROM
+  book
+WHERE
+  no_of_pages IS NOT NULL;
+
+-- 9.Afiseaza toate cartile de istorie (titlu, pret, numar de pagini). Daca au acelasi pret cu numarul de pagini, se va afisa in coloana de pret 
+--'Acelasi ca pretul'.
+
+SELECT
+  b.title, b.price,
+  CASE
+    WHEN b.no_of_pages = b.price
+    THEN 'Acelasi ca pretul'
+    ELSE to_char(b.no_of_pages)
+  END
+FROM
+  book b INNER JOIN category c ON C.category_id = b.category_id
+WHERE
+  no_of_pages IS NOT NULL AND lower(c.category_name) = 'history';
+
+-- 10. Afiseaza pentru fiecare autor si carte, diferenta de luni intre data publicarii cartii si data nasterii autorului.
+SELECT a.author_name, b.title, MONTHS_BETWEEN (TO_DATE(w.publication_year),TO_DATE(a.date_of_birth) ) "Months"
+FROM author a INNER JOIN writes w ON w.author_id = a.author_id INNER JOIN book b ON w.book_id = b.book_id
+ORDER BY (a.author_name);
+
+--11. Afiseaza adevarata data de publicare pentru cartile care au avut delay.
+SELECT b.title, TO_CHAR( ADD_MONTHS(w.publication_year,w.delay),'DD-MON-YYYY') "Real publication date"
+FROM book b INNER JOIN writes w ON b.book_id = w.book_id;
+
+--12. Afiseaza titlurile prescurtate la primele 3 caractere pentru toate cartile.
+SELECT SUBSTR(to_char(b.title),1,3) "Prescurtare"
+FROM book b;
+
+-- 13. Afiseaza pretul maxim si pretul minim dintre toate cartile care nu au avut intarzieri la publicare.
+SELECT MAX(price) as maximum_price, MIN(price) as minimum_price
+FROM book b
+WHERE b.book_id NOT IN (SELECT w.book_id
+                    FROM writes w
+                    WHERE w.delay = null);
+
+-- 14. Afiseaza pentru fiecare titlu pozitia pe care apare prima data secventa 'ww'
+SELECT INSTR(lower(title),'ww', 1, 1) "Instring" 
+FROM book;
+
+-- 15. Afiseaza autorii care locuiesc in Romania sau in UK.
+SELECT a.author_name, c.country_name
+FROM author a INNER JOIN address ad ON a.address_id = ad.address_id INNER JOIN country c ON c.country_id = ad.country_id
+WHERE lower(c.country_name) = 'united kingdom' OR lower(c.country_name)='romania'; 
